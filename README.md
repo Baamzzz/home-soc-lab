@@ -21,6 +21,28 @@ A self-built Security Operations Center lab for hands-on practice in detection e
 
 All VMs run on Oracle VirtualBox, originally built on a 16GB desktop and later migrated in full to a dedicated 64GB lab laptop to remove the resource constraints of the early build.
 
+```mermaid
+graph TB
+    WAN[Internet / WAN]
+    OPN[OPNsense<br/>Gateway + Firewall]
+
+    subgraph internal["LAN: lab-internal — 10.10.10.0/24"]
+        WAZ[Wazuh Manager<br/>SIEM / XDR]
+        WIN[Windows 11 Victim<br/>Sysmon + Wazuh Agent]
+        KALI[Kali Linux<br/>Caldera C2]
+    end
+
+    subgraph isolated["OPT1: lab-isolated — 10.10.20.0/24<br/>No route to WAN"]
+        MAL[Reserved for<br/>Malware Analysis Room]
+    end
+
+    WAN --- OPN
+    OPN --- internal
+    OPN -.future.-> isolated
+    KALI -- Sandcat agent --> WIN
+    WIN -- Sysmon telemetry --> WAZ
+```
+
 ## Build phases
 
 1. **Foundations** — planning the architecture and network segmentation
@@ -42,6 +64,11 @@ Building this lab meant a lot of real troubleshooting beyond following a guide �
 - **Wazuh dashboard API outage root-caused to a stale internal cache**, not a credentials or network issue as the surface-level error suggested — traced through `api.log` and daemon status to a `wazuh-apid` health-check desync after repeated manager restarts.
 - **Windows Defender blocking the red-team tooling**, diagnosed and resolved with a targeted `Add-MpPreference` exclusion rather than disabling protection wholesale.
 - **Full lab migration between hosts** — moving every VM, preserving network configuration and agent state, and re-tuning resource allocation for the new hardware without rebuilding from scratch.
+
+## Repository contents
+
+- [`scripts/caldera-deploy-sandcat.ps1`](scripts/caldera-deploy-sandcat.ps1) — the PowerShell script used to deploy the Caldera Sandcat agent from the attacker VM onto the Windows victim endpoint for adversary emulation runs.
+- Endpoint telemetry uses the public [SwiftOnSecurity Sysmon configuration](https://github.com/SwiftOnSecurity/sysmon-config) rather than a custom ruleset — credited here rather than re-hosted.
 
 ## Skills demonstrated
 
